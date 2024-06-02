@@ -1,4 +1,4 @@
-import React, { useRef, useContext, useState } from "react";
+import React, { useContext, useState } from "react";
 import Cart from "./Cart.jsx";
 import { CartMealCxt } from '../context/CartMealContext'
 import logoImg from "../assets/logo.jpg";
@@ -6,6 +6,8 @@ import logoImg from "../assets/logo.jpg";
 function Header() {
   const { mealsLeftInCart } = useContext(CartMealCxt)
   const [cartIsOpen, setCartIsOpen] = useState(false)
+
+  console.log('Header');
 
   function handleShowCart() {
     setCartIsOpen(true)
@@ -25,7 +27,7 @@ function Header() {
         <button onClick={handleShowCart}>Cart({mealsLeftInCart})</button>
       </div>
 
-      <Cart open={cartIsOpen} close={handleCloseCart}/>
+      <Cart key={cartIsOpen} open={cartIsOpen} close={handleCloseCart}/>
     </>
   );
 }

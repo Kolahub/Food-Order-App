@@ -26,15 +26,16 @@ function CheckOutForm({ submitted, close, totalPrice }) {
         });
         const data = await res.json();
         if(!res.ok) throw new Error(`${data,message}`)
-            setCheckedOrderOut(true)
         console.log(data, "CHECKOUT SUCCESSFULL🫡");
       } catch (err) {
         console.log(err.message);
       }
     }
-
+    
+  if (checkedOrderOut) {
     CheckOutUserOrder();
-  }, [checkOutData]);
+  }
+  }, [checkOutData, checkedOrderOut]);
 
   if (checkedOrderOut) {
     return <Modal open={checkedOrderOut} close={handleCloseCheckOut} btnText={'Okay'} btnFn={handleCloseCheckOut} info={true}>
@@ -59,6 +60,8 @@ function CheckOutForm({ submitted, close, totalPrice }) {
         customer: data,
       };
     });
+    setCheckedOrderOut(true)
+    close()
   }
 
   console.log(checkOutData, "🩷🩷🩷");

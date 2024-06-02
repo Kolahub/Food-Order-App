@@ -1,8 +1,9 @@
 import React, {
   useRef,
-  //   useEffect,
+  memo,
   useContext,
   useState,
+  useCallback
 } from "react";
 import Modal from "./Modal.jsx";
 import CheckOutForm from "./CheckOutForm.jsx";
@@ -17,14 +18,17 @@ function Cart({ open, close }) {
     0
   );
 
-  function handleSubmitOrder () {
-    setSubmittedOrder(true)
-  }
+  console.log(totalPrice, "🩷🩷🩷");
 
-  function handleCloseCheckout () {
-    setSubmittedOrder(false)
-    close()
-  }
+  const handleSubmitOrder = useCallback(() => {
+    setSubmittedOrder(true);
+  }, []);
+
+  const handleCloseCheckout = useCallback(() => {
+    setSubmittedOrder(false);
+    close();
+  }, [close]);
+
 
   return (
     <>
@@ -61,7 +65,8 @@ function Cart({ open, close }) {
         </Modal>
       )}
 
-   {submittedOrder && <CheckOutForm submitted={submittedOrder} close={handleCloseCheckout} totalPrice={totalPrice}/>}
+   <CheckOutForm key={submittedOrder} submitted={submittedOrder} close={handleCloseCheckout} totalPrice={totalPrice}/>
+
     </>
   );
 }

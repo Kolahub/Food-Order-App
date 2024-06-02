@@ -149,8 +149,6 @@ export const CartMealCxtProvider = function ({ children }) {
     resetUserCartDataAfterCheckingOut: resetUserCartDataAfterCheckingOut
   };
 
-  console.log(ctxValue);
-
   return (
     <CartMealCxt.Provider value={ctxValue}>{children}</CartMealCxt.Provider>
   );
