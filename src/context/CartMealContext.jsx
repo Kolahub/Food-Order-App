@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useReducer } from "react";
 
 export const CartMealCxt = createContext({
   cartMeals: [],
@@ -10,24 +10,7 @@ export const CartMealCxt = createContext({
   resetUserCartDataAfterCheckingOut: () => {}
 });
 
-export const CartMealCxtProvider = function ({ children }) {
-  const [cartItems, setCartItems] = useState({
-    mealsLeftInCart: 0,
-    mealsInCartData: [],
-  });
-
-  async function fetchCartItems() {
-    try {
-      const res = await fetch("http://localhost:3000/cart");
-      if (!res.ok) throw new Error("Couldn't fetch cart items.");
-      const data = await res.json();
-      if (Object.keys(data.meals).length === 0) return;
-      setCartItems(data.meals); // No need for spread operator here
-    } catch (err) {
-      console.log(err.message);
-    }
-  }
-
+function cartItemsReducer(state, action) {
   async function updateCartItems(meals) {
     try {
       const res = await fetch("http://localhost:3000/cart", {
@@ -43,40 +26,41 @@ export const CartMealCxtProvider = function ({ children }) {
     }
   }
 
-  function handleIncreaseMealPortion (mealId) {
-    setCartItems((prevState) => {
-        const findMealIndex = prevState.mealsInCartData.findIndex(
-          (el) => el.id === mealId
-        );
-
-        if (findMealIndex !== -1) {
-          const updatedMealsInCart = [...prevState.mealsInCartData];
-          updatedMealsInCart[findMealIndex] = {
-            ...updatedMealsInCart[findMealIndex],
-            quantity: updatedMealsInCart[findMealIndex].quantity + 1,
-          };
-          const updatedState = {
-            ...prevState,
-            mealsInCartData: updatedMealsInCart,
-          };
-          updateCartItems(updatedState);
-          return updatedState;
-        }
-      });
+  if (action.type === 'FETCH_CART_DATA') {
+    return action.payload
   }
-
-  function handleMealDescreasePortion(mealId) {
-    setCartItems((prevState) => {
-      const findMealIndex = prevState.mealsInCartData.findIndex(
-        (el) => el.id === mealId
+  
+  if (action.type === 'INCREASE_PORTION') {
+      const findMealIndex = state.mealsInCartData.findIndex(
+        (el) => el.id === action.payload
       );
 
       if (findMealIndex !== -1) {
-        const updatedMealsInCart = [...prevState.mealsInCartData];
+        const updatedMealsInCart = [...state.mealsInCartData];
+        updatedMealsInCart[findMealIndex] = {
+          ...updatedMealsInCart[findMealIndex],
+          quantity: updatedMealsInCart[findMealIndex].quantity + 1,
+        };
+        const updatedState = {
+          ...state,
+          mealsInCartData: updatedMealsInCart,
+        };
+        updateCartItems(updatedState);
+        return updatedState;
+      }
+  }
+
+  if (action.type === 'DECREASE_PORTION') {
+      const findMealIndex = state.mealsInCartData.findIndex(
+        (el) => el.id === action.payload
+      );
+
+      if (findMealIndex !== -1) {
+        const updatedMealsInCart = [...state.mealsInCartData];
         if (updatedMealsInCart[findMealIndex].quantity === 1) {
           updatedMealsInCart.splice(findMealIndex, 1);
           const updatedState = {
-            ...prevState,
+            ...state,
             mealsInCartData: updatedMealsInCart,
           };
         updateCartItems(updatedState);
@@ -87,23 +71,21 @@ export const CartMealCxtProvider = function ({ children }) {
           quantity: updatedMealsInCart[findMealIndex].quantity - 1,
         };
         const updatedState = {
-          ...prevState,
+          ...state,
           mealsInCartData: updatedMealsInCart,
         };
         updateCartItems(updatedState);
         return updatedState;
       }
-    });
   }
 
-  function handleAddMealToCart(mealName, mealId, mealPrice) {
-    setCartItems((prevItemsState) => {
-      const findMealIndex = prevItemsState.mealsInCartData.findIndex(
-        (el) => el.id === mealId
+  if (action.type === 'ADD_MEAL_TO_CART') {
+      const findMealIndex = state.mealsInCartData.findIndex(
+        (el) => el.id === action.payload.mealId
       );
 
       if (findMealIndex !== -1) {
-        const updatedMealsInCart = [...prevItemsState.mealsInCartData];
+        const updatedMealsInCart = [...state.mealsInCartData];
         updatedMealsInCart[findMealIndex] = {
           ...updatedMealsInCart[findMealIndex],
           quantity: updatedMealsInCart[findMealIndex].quantity + 1,
@@ -115,33 +97,88 @@ export const CartMealCxtProvider = function ({ children }) {
         updatedMealsInCart.unshift(updatedMeal);
 
         const updatedState = {
-          ...prevItemsState,
+          ...state,
           mealsInCartData: updatedMealsInCart,
         };
         updateCartItems(updatedState);
         return updatedState;
       }
       const updatedState = {
-        mealsLeftInCart: prevItemsState.mealsLeftInCart + 1,
+        mealsLeftInCart: state.mealsLeftInCart + 1,
         mealsInCartData: [
-          { id: mealId, name: mealName, quantity: 1, price: mealPrice },
-          ...prevItemsState.mealsInCartData,
+          { id: action.payload.mealId, name: action.payload.mealName, quantity: 1, price: action.payload.mealPrice },
+          ...state.mealsInCartData,
         ],
       };
       updateCartItems(updatedState);
       return updatedState;
-    });
+  }
+
+  if(action.type === 'RESET_CART') {
+    const updatedState = {mealsLeftInCart: 0, mealsInCartData: []}
+    updateCartItems(updatedState)
+    return updatedState
+  }
+
+
+  return state
+}
+
+export const CartMealCxtProvider = function ({ children }) {
+  const [cartMealsState, cartMealsDispatch] = useReducer (cartItemsReducer, {
+    mealsLeftInCart: 0,
+    mealsInCartData: [],
+  })
+
+  async function fetchCartItems() {
+    try {
+      const res = await fetch("http://localhost:3000/cart");
+      if (!res.ok) throw new Error("Couldn't fetch cart items.");
+      const data = await res.json();
+      if (Object.keys(data.meals).length === 0) return;
+      cartMealsDispatch({
+        type: 'FETCH_CART_DATA',
+        payload: data.meals
+      })
+    } catch (err) {
+      console.log(err.message);
+    }
+  }
+
+  function handleIncreaseMealPortion (mealId) {
+    cartMealsDispatch({
+      type: 'INCREASE_PORTION',
+      payload: mealId
+    })
+  }
+
+  function handleMealDescreasePortion(mealId) {
+    cartMealsDispatch({
+      type: 'DECREASE_PORTION',
+      payload: mealId
+    })
+  }
+
+  function handleAddMealToCart(mealName, mealId, mealPrice) {
+    cartMealsDispatch({
+      type: 'ADD_MEAL_TO_CART',
+      payload: {
+        mealName,
+        mealId, 
+        mealPrice
+      }
+    })
   }
 
   function resetUserCartDataAfterCheckingOut () {
-    const updatedState = {mealsLeftInCart: 0, mealsInCartData: []}
-    setCartItems(updatedState)
-    updateCartItems(updatedState)
+    cartMealsDispatch({ 
+      type: 'RESET_CART'
+    })
   }
 
   const ctxValue = {
-    cartMeals: cartItems.mealsInCartData,
-    mealsLeftInCart: cartItems.mealsLeftInCart,
+    cartMeals: cartMealsState.mealsInCartData,
+    mealsLeftInCart: cartMealsState.mealsLeftInCart,
     handleAddMealToCart: handleAddMealToCart,
     handleIncreaseMealPortion: handleIncreaseMealPortion,
     handleMealDescreasePortion: handleMealDescreasePortion,
